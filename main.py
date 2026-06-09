@@ -32,14 +32,17 @@ class MyApp(ShowBase):
         self.accept('y', self.environment_system.changeSceneScale, [1.5])
         self.accept('x', self.environment_system.changeSceneScale, [1.0 / 1.5])
 
+
         #Init camera system
-        self.camera_system = CameraSystem(self.camera, self.taskMgr, self.config.get("camera"))
+        self.camNode.setActive(0)
+        self.camera_system = CameraSystem(self.win, self.render,self.taskMgr,self.makeCamera, self.getAspectRatio(), self.config.get("camera"))
         #Controls for camera height (keyboard: 'z' decreases, 'u' increases)
         self.accept('z', self.camera_system.changeCameraHeight, [-0.25])
         self.accept('u', self.camera_system.changeCameraHeight, [0.25])
         #Controls for camera distance (keyboard: 'i' decreases, 'o' increases)
         self.accept('i', self.camera_system.changeCameraDistance, [-2.0])
         self.accept('o', self.camera_system.changeCameraDistance, [2.0])
+        self.accept('t', self.camera_system.zoomtoBear)
 
         #Init snow system
         self.snow_system = SnowSystem(self.loader, self.render, self.taskMgr, globalClock, self.config.get("snow_system"))
@@ -53,6 +56,10 @@ class MyApp(ShowBase):
         self.accept('g', self.polar_bear.changePandaScale, [1.5])
         self.accept('h', self.polar_bear.changePandaScale, [1.0 / 1.5])
 
+        
+        # Nút E để bật/tắt lưới
+        self.accept('e', self.polar_bear.toggle_outline)
+
         # Gán gấu làm mục tiêu cho camera đi theo
         self.camera_system.setTarget(self.polar_bear)
 
@@ -63,8 +70,8 @@ class MyApp(ShowBase):
         self.accept('arrow_right', self.polar_bear.turn, [-10.0])
 
         # Hỗ trợ đè phím (nhấn giữ mũi tên sẽ liên tục di chuyển)
-        self.accept('arrow_up-repeat', self.polar_bear.moveForward, [0.5])
-        self.accept('arrow_down-repeat', self.polar_bear.moveForward, [-0.5])
+        self.accept('arrow_up-repeat', self.polar_bear.moveForward, [-0.5])
+        self.accept('arrow_down-repeat', self.polar_bear.moveForward, [0.5])
         self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
         self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
@@ -74,9 +81,9 @@ class MyApp(ShowBase):
         print("Camera Height:", self.camera_system.cameraHeight)
         print("Camera Distance:", self.camera_system.cameraDistance)
         print("Panda Position:", self.polar_bear.getPos())
+        print("Panda Rotation:", self.polar_bear.getHpr())
         print("Panda Scale:", self.polar_bear.getScale())
         print("Scene Scale:", self.environment_system.scene.getScale())
-    
-
+  
 app = MyApp()
 app.run()

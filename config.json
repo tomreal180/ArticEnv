@@ -1,7 +1,7 @@
 {
   "camera": {
     "distance": 6.0,
-    "height": -23.0
+    "height": -20.5
   },
   "scene": {
     "model_path": "assets/models/snow_mountain/scene.gltf",
