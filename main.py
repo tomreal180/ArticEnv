@@ -1,7 +1,7 @@
 from direct.showbase.ShowBase import ShowBase
 import gltf
 from direct.actor.Actor import Actor
-from panda3d.core import Filename, getModelPath
+from panda3d.core import Filename, getModelPath, Point3, LineSegs
 import json
 
 # Import custom systems
@@ -38,8 +38,8 @@ class MyApp(ShowBase):
 
 
         #Init camera system
-        self.camNode.setActive(0)
-        self.camera_system = CameraSystem(self.win, self.render,self.taskMgr,self.makeCamera, self.getAspectRatio(), self.config.get("camera"))
+        # self.camNode.setActive(0)
+        self.camera_system = CameraSystem(self.taskMgr,self.camera, self.config.get("camera"))
         #Controls for camera height (keyboard: 'z' decreases, 'u' increases)
         self.accept('y', self.camera_system.changeCameraHeight, [-0.25])
         self.accept('u', self.camera_system.changeCameraHeight, [0.25])
@@ -66,7 +66,12 @@ class MyApp(ShowBase):
         # Nút E để bật/tắt lưới
         self.accept('e', self.polar_bear.toggle_outline)
 
-        # Gán gấu làm mục tiêu cho camera đi theo
+        # Nút W để bật/tắt khung YOLO 2D
+        self.accept('w', self.toggle_yolo_bbox)
+        self.is_yolo_bbox_visible = False
+        self.taskMgr.add(self.draw_yolo_bounding_box, "draw_yolo_bbox_task")
+
+        # Set camera to follow the polar bear
         self.camera_system.setTarget(self.polar_bear)
 
         # Cài đặt phím mũi tên để di chuyển nhân vật
@@ -99,11 +104,9 @@ class MyApp(ShowBase):
 
   
     def updateSnowPosition(self):
-        """Update the position of snowflakes based on the current camera position to create a parallax effect."""
         self.snow_system.updateSnowPosition(self.camera_system.getCameraPosition())
 
     def toggleBlizzardEffect(self):
-        """Toggle between blizzard and sunny summer effects by changing environment settings and snowflake count."""
         if self.blizzard_effect:
             self.environment_system.setupSunnySummerEffect()
             self.snow_system.setnumFlakes(0)  # Tắt tuyết khi chuyển sang hiệu ứng ngày hè
@@ -112,5 +115,94 @@ class MyApp(ShowBase):
             self.snow_system.setnumFlakes(self.config.get("snow_system", {}).get("num_flakes", 1000))
         self.setBackgroundColor(self.environment_system.fog_color)
         self.blizzard_effect = not self.blizzard_effect
+
+    def toggle_yolo_bbox(self):
+        """Toggle the visibility of the YOLO bounding box overlay on the screen."""
+        self.is_yolo_bbox_visible = not getattr(self, 'is_yolo_bbox_visible', False)
+        if self.is_yolo_bbox_visible:
+            print("Activated YOLO 2D bounding box overlay.")
+        else:
+            print("Deactivated YOLO 2D bounding box overlay.")
+            if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
+                self.yolo_bbox_node.removeNode()
+
+    def draw_yolo_bounding_box(self, task):
+        # Remove the old bounding box
+        if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
+            self.yolo_bbox_node.removeNode()
+
+        if not getattr(self, 'is_yolo_bbox_visible', False):
+            return task.cont
+
+        bounds = self.polar_bear.getTightBounds()
+        if not bounds:
+            return task.cont
+            
+        min_pt, max_pt = bounds
+        
+        # Get the 8 corners of the bounding box in 3D space
+        corners = [
+            Point3(min_pt[0], min_pt[1], min_pt[2]),
+            Point3(max_pt[0], min_pt[1], min_pt[2]),
+            Point3(min_pt[0], max_pt[1], min_pt[2]),
+            Point3(max_pt[0], max_pt[1], min_pt[2]),
+            Point3(min_pt[0], min_pt[1], max_pt[2]),
+            Point3(max_pt[0], min_pt[1], max_pt[2]),
+            Point3(min_pt[0], max_pt[1], max_pt[2]),
+            Point3(max_pt[0], max_pt[1], max_pt[2])
+        ]
+
+        # get main camera to project 3D points to 2D screen space
+        cam = self.cam
+        if not cam:
+            return task.cont
+            
+        lens = cam.node().getLens()
+        
+        min_x, max_x = float('inf'), float('-inf')
+        min_y, max_y = float('inf'), float('-inf')
+        
+        # project 8 corners of the 3D bounding box to 2D screen space
+        for corner in corners:
+            p3d = Point3()
+            # project() returns True if the point is in front of the camera, converting camera coordinates to 2D screen coordinates
+            if lens.project(cam.getRelativePoint(self.render, corner), p3d):
+                min_x = min(min_x, p3d[0])
+                max_x = max(max_x, p3d[0])
+                min_y = min(min_y, p3d[1])
+                max_y = max(max_y, p3d[1])
+
+        # If no points are on the screen, skip
+        if min_x == float('inf'):
+            return task.cont
+
+        # Limit the bounding box to the screen bounds (-1 to 1 in both x and y)
+        min_x, max_x = max(-1, min_x), min(1, max_x)
+        min_y, max_y = max(-1, min_y), min(1, max_y)
+
+        # Calculate YOLO coordinates (Coordinate system: x,y center of the box and w,h in [0,1], origin at top-left corner)
+        yolo_x_center = ((min_x + max_x) / 2.0 + 1.0) / 2.0
+        yolo_y_center = 1.0 - (((min_y + max_y) / 2.0 + 1.0) / 2.0)
+        yolo_width = (max_x - min_x) / 2.0
+        yolo_height = (max_y - min_y) / 2.0
+        
+        # Uncomment dòng dưới nếu muốn in nhãn liên tục ra Console hoặc ghi file
+        # print(f"0 {yolo_x_center:.6f} {yolo_y_center:.6f} {yolo_width:.6f} {yolo_height:.6f}")
+
+        # Draw the 2D rectangle on the screen (attached to render2d)
+        lines = LineSegs()
+        lines.setColor(0, 1, 0, 1) # Green border
+        lines.setThickness(2)
+        
+        lines.moveTo(min_x, 0, min_y)
+        lines.drawTo(max_x, 0, min_y)
+        lines.drawTo(max_x, 0, max_y)
+        lines.drawTo(min_x, 0, max_y)
+        lines.drawTo(min_x, 0, min_y)
+        
+        self.yolo_bbox_node = self.render2d.attachNewNode(lines.create())
+        
+        return task.cont
+
 app = MyApp()
 app.run()
