@@ -26,18 +26,22 @@ class MyApp(ShowBase):
 
         #Init environment system
         self.environment_system = EnvironmentSystem(self.loader, self.render, self.config.get("scene"))
+        self.blizzard_effect = True
         #Change background color to match fog color
         self.setBackgroundColor(self.environment_system.fog_color)
         # Controls for scene scale (keyboard: 'y' increases, 'x' decreases)
-        self.accept('y', self.environment_system.changeSceneScale, [1.5])
+        self.accept('z', self.environment_system.changeSceneScale, [1.5])
         self.accept('x', self.environment_system.changeSceneScale, [1.0 / 1.5])
+        self.accept('s', self.environment_system.updateFogDensity, [0.005])  # Tăng độ đặc của sương
+        self.accept('a', self.environment_system.updateFogDensity, [-0.005]) #
+        self.accept('d', self.toggleBlizzardEffect)  # Bật/tắt hiệu ứng bão tuyết
 
 
         #Init camera system
         self.camNode.setActive(0)
         self.camera_system = CameraSystem(self.win, self.render,self.taskMgr,self.makeCamera, self.getAspectRatio(), self.config.get("camera"))
         #Controls for camera height (keyboard: 'z' decreases, 'u' increases)
-        self.accept('z', self.camera_system.changeCameraHeight, [-0.25])
+        self.accept('y', self.camera_system.changeCameraHeight, [-0.25])
         self.accept('u', self.camera_system.changeCameraHeight, [0.25])
         #Controls for camera distance (keyboard: 'i' decreases, 'o' increases)
         self.accept('i', self.camera_system.changeCameraDistance, [-2.0])
@@ -47,14 +51,16 @@ class MyApp(ShowBase):
         #Init snow system
         self.snow_system = SnowSystem(self.loader, self.render, self.taskMgr, globalClock, self.config.get("snow_system"))
 
-        self.accept('p', self.printValue)
+        self.accept('k', self.snow_system.updatenumFlakes, [500])
+        self.accept('j', self.snow_system.updatenumFlakes, [-500])
+        self.accept('l', self.updateSnowPosition)
         #Init polar bear actor
         self.polar_bear = PolarBears(self.render, self.config.get("actor"))
         # allow fine adjustments at runtime: 'b' lower, 'n' raise
-        self.accept('b', self.polar_bear.changePandaHeight, [-0.05])
-        self.accept('n', self.polar_bear.changePandaHeight, [0.05])
-        self.accept('g', self.polar_bear.changePandaScale, [1.5])
-        self.accept('h', self.polar_bear.changePandaScale, [1.0 / 1.5])
+        self.accept('v', self.polar_bear.changePandaHeight, [-0.05])
+        self.accept('b', self.polar_bear.changePandaHeight, [0.05])
+        self.accept('n', self.polar_bear.changePandaScale, [1.5])
+        self.accept('m', self.polar_bear.changePandaScale, [1.0 / 1.5])
 
         
         # Nút E để bật/tắt lưới
@@ -75,15 +81,36 @@ class MyApp(ShowBase):
         self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
         self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
+
+        self.accept('p', self.printValue)
+
+
     
         
     def printValue(self):
+        """Print current values of camera settings, panda position/rotation/scale, and scene scale for debugging."""
         print("Camera Height:", self.camera_system.cameraHeight)
         print("Camera Distance:", self.camera_system.cameraDistance)
         print("Panda Position:", self.polar_bear.getPos())
         print("Panda Rotation:", self.polar_bear.getHpr())
         print("Panda Scale:", self.polar_bear.getScale())
         print("Scene Scale:", self.environment_system.scene.getScale())
+
+
   
+    def updateSnowPosition(self):
+        """Update the position of snowflakes based on the current camera position to create a parallax effect."""
+        self.snow_system.updateSnowPosition(self.camera_system.getCameraPosition())
+
+    def toggleBlizzardEffect(self):
+        """Toggle between blizzard and sunny summer effects by changing environment settings and snowflake count."""
+        if self.blizzard_effect:
+            self.environment_system.setupSunnySummerEffect()
+            self.snow_system.setnumFlakes(0)  # Tắt tuyết khi chuyển sang hiệu ứng ngày hè
+        else:
+            self.environment_system.setupBlizzardEffect()
+            self.snow_system.setnumFlakes(self.config.get("snow_system", {}).get("num_flakes", 1000))
+        self.setBackgroundColor(self.environment_system.fog_color)
+        self.blizzard_effect = not self.blizzard_effect
 app = MyApp()
 app.run()
