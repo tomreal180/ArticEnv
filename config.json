@@ -1,7 +1,7 @@
 {
   "camera": {
     "distance": 6.0,
-    "height": -20.5
+    "height": -23.0
   },
   "scene": {
     "model_path": "assets/models/snow_mountain/scene.gltf",
@@ -10,12 +10,12 @@
   "actor": {
     "model_path": "assets/models/polar_bear2.glb",
     "scale": 0.2962963,
-    "z_pos": -24.299917
+    "z_pos": -24.399917
   },
   "snow_system": {
     "num_flakes": 1000,
     "wind_vector": [15.0, -5.0, -15.0],
-    "spawn_bounds": [-40.0, 40.0, -40.0, 40.0, -30.0, 20.0],
+    "spawn_bounds": [-10.0, 80.0, -10.0, 80.0, -30.0, 20.0],
     "texture_path": "assets/textures/snowflake.png"
   }
 }
