@@ -21,9 +21,6 @@ class MyApp(ShowBase):
         with open("config.json", "r") as f:
             self.config = json.load(f)
         
-        self.dataset_dir = "polar_bear_dataset"
-        for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
-            os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
         
         self.frame_count = 0
         self.is_recording = False

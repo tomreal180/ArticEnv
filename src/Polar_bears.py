@@ -22,21 +22,23 @@ class PolarBears(Actor):
         # self.setHpr(0, 0, 0)  
         self.loop("walk")
 
-        posInterval1 = self.posInterval(30, Point3( 19.768331, -7.1950926, z), startPos=Point3(0, 0, z))
-        posInterval2 = self.posInterval(40, Point3(60.418693, -21.990522, -24.099922), startPos=Point3(19.768331, -7.1950926, -24.099922))
-        posInterval3 = self.posInterval(50, Point3(73.783195, -26.85472, -23.89992), startPos=Point3(60.418693, -21.990522, -23.89992))
-        posInterval4 = self.posInterval(50, Point3(88.12219, -32.0736, -23.54993), startPos=Point3(73.783195, -26.85472, -23.54993))
-        posInterval5 = self.posInterval(50, Point3(108.168945, -39.37017, -23.199935), startPos=Point3(88.12219, -32.0736, -23.199935))
+        # posInterval1 = self.posInterval(30, Point3( 19.768331, -7.1950926, z), startPos=Point3(0, 0, z))
+        # posInterval2 = self.posInterval(40, Point3(60.418693, -21.990522, -24.099922), startPos=Point3(19.768331, -7.1950926, -24.099922))
+        # posInterval3 = self.posInterval(50, Point3(73.783195, -26.85472, -23.89992), startPos=Point3(60.418693, -21.990522, -23.89992))
+        # posInterval4 = self.posInterval(50, Point3(88.12219, -32.0736, -23.54993), startPos=Point3(73.783195, -26.85472, -23.54993))
+        # posInterval5 = self.posInterval(50, Point3(108.168945, -39.37017, -23.199935), startPos=Point3(88.12219, -32.0736, -23.199935))
         # posInterval6 = self.posInterval(50, Point3(145.47914, -52.949897, -22.94994), startPos=Point3(108.168945, -39.37017, -22.94994))
 
-
-
+        posInterval1 = self.posInterval(50, Point3( 145.47914, -52.949897, z), startPos=Point3(0, 0, z))
+        posInterval2 = self.posInterval(50, Point3(0, 0, z), startPos=Point3(145.47914, -52.949897, z))
+        hprInterval1 = self.hprInterval(3, Point3(250, 0, 0), startHpr=Point3(70, 0, 0))
+        hprInterval2 = self.hprInterval(3, Point3(70, 0, 0), startHpr=Point3(250, 0, 0))
 
         # posInterval2 = self.posInterval(50, Point3(112.55255, -39.659835, z+2), startPos=Point3(5.0796813, -0.5430069, z))
         # hprInterval1 = self.hprInterval(3, Point3(70, 0, 0), startHpr=Point3(250, 0, 0))
         # hprInterval2 = self.hprInterval(3, Point3(250, 0, 0), startHpr=Point3(70, 0, 0))
         # self.pandaPace = Sequence(posInterval1, hprInterval1, posInterval2, hprInterval2, name="pandaPace")
-        self.pandaPace = Sequence(posInterval1, posInterval2, posInterval3, posInterval4, posInterval5, name="pandaPace")
+        self.pandaPace = Sequence(posInterval1,hprInterval1, posInterval2, hprInterval2, name="pandaPace")
         self.pandaPace.loop()
         # self.pandaPace.loop()
 

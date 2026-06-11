@@ -1,7 +1,7 @@
 {
   "camera": {
     "distance": 10.0,
-    "height": -22.5
+    "height": -17
   },
   "scene": {
     "model_path": "assets/models/snow_mountain/scene.gltf",
@@ -10,7 +10,7 @@
   "actor": {
     "model_path": "assets/models/polar_bear2.glb",
     "scale": 0.2962963,
-    "z_pos": -24.399917
+    "z_pos": -20
   },
   "snow_system": {
     "num_flakes": 1000,
@@ -21,7 +21,7 @@
   "record_system": {
     "dataset_dir": "polar_bear_dataset",
     "capture_interval": 0.5,
-    "limit": 1000,
+    "limit": 500,
     "split_interval": 10,
     "validation_split": 2
   }
