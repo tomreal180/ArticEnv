@@ -1,8 +1,9 @@
 from direct.showbase.ShowBase import ShowBase
 import gltf
 from direct.actor.Actor import Actor
-from panda3d.core import Filename, getModelPath, Point3, LineSegs
+from panda3d.core import Filename, getModelPath, Point3, LineSegs,Filename
 import json
+import os
 
 # Import custom systems
 from src.Polar_bears import PolarBears
@@ -18,6 +19,13 @@ class MyApp(ShowBase):
         # Đọc file cấu hình initial values
         with open("config.json", "r") as f:
             self.config = json.load(f)
+        
+        self.dataset_dir = "polar_bear_dataset"
+        if not os.path.exists(self.dataset_dir):
+            os.makedirs(self.dataset_dir)
+        
+        self.frame_count = 0
+        self.is_recording = False
 
         # Ensure relative texture URIs from scene.gltf (like textures/...) are resolvable.
         getModelPath().appendDirectory(Filename.from_os_specific("assets/models/snow_mountain"))
@@ -46,7 +54,7 @@ class MyApp(ShowBase):
         #Controls for camera distance (keyboard: 'i' decreases, 'o' increases)
         self.accept('i', self.camera_system.changeCameraDistance, [-2.0])
         self.accept('o', self.camera_system.changeCameraDistance, [2.0])
-        self.accept('t', self.camera_system.zoomtoBear)
+        self.accept('t', self.camera_system.setCameraView, ["main"])
 
         #Init snow system
         self.snow_system = SnowSystem(self.loader, self.render, self.taskMgr, globalClock, self.config.get("snow_system"))
@@ -68,26 +76,32 @@ class MyApp(ShowBase):
 
         # Nút W để bật/tắt khung YOLO 2D
         self.accept('w', self.toggle_yolo_bbox)
-        self.is_yolo_bbox_visible = False
+        self.is_yolo_bbox_visible = True
         self.taskMgr.add(self.draw_yolo_bounding_box, "draw_yolo_bbox_task")
 
         # Set camera to follow the polar bear
         self.camera_system.setTarget(self.polar_bear)
 
-        # Cài đặt phím mũi tên để di chuyển nhân vật
-        self.accept('arrow_up', self.polar_bear.moveForward, [0.5])
-        self.accept('arrow_down', self.polar_bear.moveForward, [-0.5])
-        self.accept('arrow_left', self.polar_bear.turn, [10.0])
-        self.accept('arrow_right', self.polar_bear.turn, [-10.0])
+        # # Cài đặt phím mũi tên để di chuyển nhân vật
+        # self.accept('arrow_up', self.polar_bear.moveForward, [0.5])
+        # self.accept('arrow_down', self.polar_bear.moveForward, [-0.5])
+        # self.accept('arrow_left', self.polar_bear.turn, [10.0])
+        # self.accept('arrow_right', self.polar_bear.turn, [-10.0])
 
-        # Hỗ trợ đè phím (nhấn giữ mũi tên sẽ liên tục di chuyển)
-        self.accept('arrow_up-repeat', self.polar_bear.moveForward, [-0.5])
-        self.accept('arrow_down-repeat', self.polar_bear.moveForward, [0.5])
-        self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
-        self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
+        # # Hỗ trợ đè phím (nhấn giữ mũi tên sẽ liên tục di chuyển)
+        # self.accept('arrow_up-repeat', self.polar_bear.moveForward, [-0.5])
+        # self.accept('arrow_down-repeat', self.polar_bear.moveForward, [0.5])
+        # self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
+        # self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
+        self.accept('arrow_up', self.camera_system.setCameraView, ["topdown"])
+        self.accept('arrow_down', self.camera_system.setCameraView, ["behind"])
+        self.accept('arrow_left', self.camera_system.setCameraView, ["left"])
+        self.accept('arrow_right', self.camera_system.setCameraView, ["right"])
 
         self.accept('p', self.printValue)
+        # self.accept('r', self.togglerecording)
+        # self.accept('f', self.take_single_photo)
 
 
     
@@ -100,8 +114,6 @@ class MyApp(ShowBase):
         print("Panda Rotation:", self.polar_bear.getHpr())
         print("Panda Scale:", self.polar_bear.getScale())
         print("Scene Scale:", self.environment_system.scene.getScale())
-
-
   
     def updateSnowPosition(self):
         self.snow_system.updateSnowPosition(self.camera_system.getCameraPosition())
@@ -134,10 +146,30 @@ class MyApp(ShowBase):
         if not getattr(self, 'is_yolo_bbox_visible', False):
             return task.cont
 
+        self.min_x, self.max_x, self.min_y, self.max_y = self.calculate_xy()
+        
+        # Uncomment dòng dưới nếu muốn in nhãn liên tục ra Console hoặc ghi file
+        # print(f"0 {yolo_x_center:.6f} {yolo_y_center:.6f} {yolo_width:.6f} {yolo_height:.6f}")
+
+        # Draw the 2D rectangle on the screen (attached to render2d)
+        lines = LineSegs()
+        lines.setColor(0, 1, 0, 1) # Green border
+        lines.setThickness(2)
+        
+        lines.moveTo(self.min_x, 0, self.min_y)
+        lines.drawTo(self.max_x, 0, self.min_y)
+        lines.drawTo(self.max_x, 0, self.max_y)
+        lines.drawTo(self.min_x, 0, self.max_y)
+        lines.drawTo(self.min_x, 0, self.min_y)
+        
+        self.yolo_bbox_node = self.render2d.attachNewNode(lines.create())
+        
+        return task.cont
+    
+    def calculate_xy(self):
         bounds = self.polar_bear.getTightBounds()
         if not bounds:
-            return task.cont
-            
+            raise Exception("Failed to get tight bounds for polar bear.")
         min_pt, max_pt = bounds
         
         # Get the 8 corners of the bounding box in 3D space
@@ -155,7 +187,7 @@ class MyApp(ShowBase):
         # get main camera to project 3D points to 2D screen space
         cam = self.cam
         if not cam:
-            return task.cont
+            raise Exception("Camera not found for projecting 3D points to 2D screen space.")
             
         lens = cam.node().getLens()
         
@@ -174,35 +206,13 @@ class MyApp(ShowBase):
 
         # If no points are on the screen, skip
         if min_x == float('inf'):
-            return task.cont
+            raise Exception("Failed to project 3D points to 2D screen space.")
 
         # Limit the bounding box to the screen bounds (-1 to 1 in both x and y)
         min_x, max_x = max(-1, min_x), min(1, max_x)
         min_y, max_y = max(-1, min_y), min(1, max_y)
-
-        # Calculate YOLO coordinates (Coordinate system: x,y center of the box and w,h in [0,1], origin at top-left corner)
-        yolo_x_center = ((min_x + max_x) / 2.0 + 1.0) / 2.0
-        yolo_y_center = 1.0 - (((min_y + max_y) / 2.0 + 1.0) / 2.0)
-        yolo_width = (max_x - min_x) / 2.0
-        yolo_height = (max_y - min_y) / 2.0
-        
-        # Uncomment dòng dưới nếu muốn in nhãn liên tục ra Console hoặc ghi file
-        # print(f"0 {yolo_x_center:.6f} {yolo_y_center:.6f} {yolo_width:.6f} {yolo_height:.6f}")
-
-        # Draw the 2D rectangle on the screen (attached to render2d)
-        lines = LineSegs()
-        lines.setColor(0, 1, 0, 1) # Green border
-        lines.setThickness(2)
-        
-        lines.moveTo(min_x, 0, min_y)
-        lines.drawTo(max_x, 0, min_y)
-        lines.drawTo(max_x, 0, max_y)
-        lines.drawTo(min_x, 0, max_y)
-        lines.drawTo(min_x, 0, min_y)
-        
-        self.yolo_bbox_node = self.render2d.attachNewNode(lines.create())
-        
-        return task.cont
-
+        return (min_x, max_x, min_y, max_y)
+    
+    
 app = MyApp()
 app.run()
