@@ -1,7 +1,7 @@
 {
   "camera": {
-    "distance": 6.0,
-    "height": -23.0
+    "distance": 10.0,
+    "height": -22.5
   },
   "scene": {
     "model_path": "assets/models/snow_mountain/scene.gltf",
@@ -17,5 +17,11 @@
     "wind_vector": [15.0, -5.0, -15.0],
     "spawn_bounds": [-10.0, 80.0, -10.0, 80.0, -30.0, 20.0],
     "texture_path": "assets/textures/snowflake.png"
+  },
+  "record_system": {
+    "dataset_dir": "polar_bear_dataset",
+    "capture_interval": 0.5,
+    "limit": 1000,
+    "validation_split": 0.2
   }
 }

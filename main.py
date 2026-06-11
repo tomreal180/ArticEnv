@@ -10,6 +10,7 @@ from src.Polar_bears import PolarBears
 from src.enviroment_system import EnvironmentSystem
 from src.snow_system import SnowSystem
 from src.camera_system import CameraSystem
+from src.record_system import Record_System
 
 class MyApp(ShowBase):
 
@@ -21,8 +22,8 @@ class MyApp(ShowBase):
             self.config = json.load(f)
         
         self.dataset_dir = "polar_bear_dataset"
-        if not os.path.exists(self.dataset_dir):
-            os.makedirs(self.dataset_dir)
+        for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
+            os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
         
         self.frame_count = 0
         self.is_recording = False
@@ -55,6 +56,10 @@ class MyApp(ShowBase):
         self.accept('i', self.camera_system.changeCameraDistance, [-2.0])
         self.accept('o', self.camera_system.changeCameraDistance, [2.0])
         self.accept('t', self.camera_system.setCameraView, ["main"])
+        self.accept('arrow_up', self.camera_system.setCameraView, ["topdown"])
+        self.accept('arrow_down', self.camera_system.setCameraView, ["behind"])
+        self.accept('arrow_left', self.camera_system.setCameraView, ["left"])
+        self.accept('arrow_right', self.camera_system.setCameraView, ["right"])
 
         #Init snow system
         self.snow_system = SnowSystem(self.loader, self.render, self.taskMgr, globalClock, self.config.get("snow_system"))
@@ -64,13 +69,13 @@ class MyApp(ShowBase):
         self.accept('l', self.updateSnowPosition)
         #Init polar bear actor
         self.polar_bear = PolarBears(self.render, self.config.get("actor"))
+         # Set camera to follow the polar bear
+        self.camera_system.setTarget(self.polar_bear)
         # allow fine adjustments at runtime: 'b' lower, 'n' raise
         self.accept('v', self.polar_bear.changePandaHeight, [-0.05])
         self.accept('b', self.polar_bear.changePandaHeight, [0.05])
         self.accept('n', self.polar_bear.changePandaScale, [1.5])
         self.accept('m', self.polar_bear.changePandaScale, [1.0 / 1.5])
-
-        
         # Nút E để bật/tắt lưới
         self.accept('e', self.polar_bear.toggle_outline)
 
@@ -78,9 +83,6 @@ class MyApp(ShowBase):
         self.accept('w', self.toggle_yolo_bbox)
         self.is_yolo_bbox_visible = True
         self.taskMgr.add(self.draw_yolo_bounding_box, "draw_yolo_bbox_task")
-
-        # Set camera to follow the polar bear
-        self.camera_system.setTarget(self.polar_bear)
 
         # # Cài đặt phím mũi tên để di chuyển nhân vật
         # self.accept('arrow_up', self.polar_bear.moveForward, [0.5])
@@ -94,14 +96,12 @@ class MyApp(ShowBase):
         # self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
         # self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
-        self.accept('arrow_up', self.camera_system.setCameraView, ["topdown"])
-        self.accept('arrow_down', self.camera_system.setCameraView, ["behind"])
-        self.accept('arrow_left', self.camera_system.setCameraView, ["left"])
-        self.accept('arrow_right', self.camera_system.setCameraView, ["right"])
+        self.record_system = Record_System(self.win, self.taskMgr, self.getCoordinates, self.config.get("record_system"))
+        self.accept('r', self.record_system.togglerecording)
+        self.accept('f', self.record_system.take_single_photo)
 
         self.accept('p', self.printValue)
-        # self.accept('r', self.togglerecording)
-        # self.accept('f', self.take_single_photo)
+       
 
 
     
@@ -145,8 +145,10 @@ class MyApp(ShowBase):
 
         if not getattr(self, 'is_yolo_bbox_visible', False):
             return task.cont
+        
+        self.coordinates = self.calculate_xy()
 
-        self.min_x, self.max_x, self.min_y, self.max_y = self.calculate_xy()
+        min_x, max_x, min_y, max_y = self.coordinates
         
         # Uncomment dòng dưới nếu muốn in nhãn liên tục ra Console hoặc ghi file
         # print(f"0 {yolo_x_center:.6f} {yolo_y_center:.6f} {yolo_width:.6f} {yolo_height:.6f}")
@@ -156,11 +158,11 @@ class MyApp(ShowBase):
         lines.setColor(0, 1, 0, 1) # Green border
         lines.setThickness(2)
         
-        lines.moveTo(self.min_x, 0, self.min_y)
-        lines.drawTo(self.max_x, 0, self.min_y)
-        lines.drawTo(self.max_x, 0, self.max_y)
-        lines.drawTo(self.min_x, 0, self.max_y)
-        lines.drawTo(self.min_x, 0, self.min_y)
+        lines.moveTo(min_x, 0, min_y)
+        lines.drawTo(max_x, 0, min_y)
+        lines.drawTo(max_x, 0, max_y)
+        lines.drawTo(min_x, 0, max_y)
+        lines.drawTo(min_x, 0, min_y)
         
         self.yolo_bbox_node = self.render2d.attachNewNode(lines.create())
         
@@ -212,6 +214,9 @@ class MyApp(ShowBase):
         min_x, max_x = max(-1, min_x), min(1, max_x)
         min_y, max_y = max(-1, min_y), min(1, max_y)
         return (min_x, max_x, min_y, max_y)
+    
+    def getCoordinates(self):
+        return self.coordinates
     
     
 app = MyApp()
