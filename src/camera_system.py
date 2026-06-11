@@ -10,10 +10,6 @@ class CameraSystem:
             config = {}
         self.cameraDistance = config.get("distance", 20.0)
         self.cameraHeight = config.get("height", 10.0)
-        # Khởi tạo camera toàn màn hình bằng function create_viewport_camera
-        # self.camera = None
-        # self.camera.getDisplayRegion(0).setActive(0)  # Kích hoạt DisplayRegion của camera chính
-        # Tắt các task cập nhật camera mỗi khung hình để camera cố định
         # self.taskMgr.add(self.spinCameraTask, "SpinCameraTask")
         self.cameraPosition = self.camera.getPos()
         self.cameraView = "main"
@@ -30,48 +26,8 @@ class CameraSystem:
         angleRadians = angleDegrees * (pi / 180.0)
         self.camera.setPos(self.cameraDistance * sin(angleRadians), -self.cameraDistance * cos(angleRadians), self.cameraHeight)
         self.camera.setHpr(angleDegrees, 0, 0)
-        return Task.cont
-    
-    # def create_fixed_camera(self, cam_name):
-    #     if self.target:
-    #         main_cam = self.create_viewport_camera(cam_name, viewport=(0.0, 1.0, 0.0, 1.0))
-    #         main_cam.setPos(0, -self.cameraDistance, self.cameraHeight)
-    #         main_cam.lookAt(self.target.getPos())
-    #         self.camerasystem[cam_name] = main_cam
-    
-    # def create_viewport_camera(self, cam_name, viewport):
-    #     """Function to create a camera and attach it to a viewport (DisplayRegion) on the screen"""
-        
-    #     l, r, b, t = viewport
-
-    #     dr = self.win.makeDisplayRegion(l, r, b, t)
-
-    #     # # Xóa nền của vùng này để tránh bị đè hình cũ
-    #     # dr.setClearColorActive(True) 
-    #     # dr.setClearDepthActive(True)
-    #     # Tạo một camera mới và gắn vào khu vực (left, right, bottom, top) của cửa sổ chính
-    #     camNode = Camera(cam_name)
-
-    #     lens = PerspectiveLens()
-    #     lens.setAspectRatio(self.win_aspect)
-    #     lens.setFov(60)
-    #     camNode.setLens(lens)
-
-    #     cam_np = self.render.attachNewNode(camNode)
-    #     dr.setCamera(cam_np)
-    #     dr.setActive(0) 
-    #     # cam.setPos(pos)
-    #     # cam.lookAt(self.target.getPos())
-
-        
-    #     # save camera and its viewport in the camerasystem dictionary for later reference
-    #     self.camerasystem[cam_name] = {
-    #         "name": cam_name,
-    #         "camera": cam_np,
-    #         "viewport": dr
-    #     }
-    
-        
+        return Task.cont    
+          
     def followCameraTask(self, task):
         if self.target:
             target_pos = self.target.getPos()
@@ -105,6 +61,7 @@ class CameraSystem:
             else:
                 raise Exception(f"Camera {self.cameraView} has no defined behavior in followCameraTask.")
         return task.cont
+    
     def setCameraView(self, view_name):
         self.cameraView = view_name
         
@@ -112,7 +69,6 @@ class CameraSystem:
         """Listen to camera position changes and update the stored cameraPosition variable."""
         self.cameraPosition = self.camera.getPos()
         return task.cont
-
 
     def getCameraPosition(self):
         """Get the current position of the camera."""
@@ -132,6 +88,7 @@ class CameraSystem:
     def changeCameraDistance(self, delta):
         """Adjust orbit camera distance from the panda."""
         self.cameraDistance = max(2.0, self.cameraDistance + delta)
+
     def setPosition(self, pos):
         """Set camera position directly."""
         self.camera.setPos(pos)

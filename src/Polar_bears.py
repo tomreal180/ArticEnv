@@ -85,8 +85,6 @@ class PolarBears(Actor):
         else:
             self.mesh_bear.hide()
     
-
-    
     def changePandaScale(self, factor):
         """Scale the panda actor by factor."""
         s = self.getScale()

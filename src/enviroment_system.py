@@ -12,11 +12,10 @@ class EnvironmentSystem:
     
         #Load scene model
         self.scene = self.loader.loadModel(config.get("model_path","assets/models/snow_mountain/scene.gltf"))
+        # self.scene.setTextureOff(1)  # Tắt texture để hiển thị màu gốc của model, giúp hiệu ứng sương mù rõ ràng hơn
         self.scene.reparentTo(self.render)
         scene_scale = config.get("scale", 1.0)
         self.scene.setScale(scene_scale, scene_scale, scene_scale)
-
-        
 
     def changeSceneScale(self, factor):
         """Scale the loaded scene by factor."""

@@ -13,6 +13,7 @@ class Record_System:
         self.frame_count = 0
         self.limit = config.get("limit", 10)
         self.validation_split = config.get("validation_split", 0.2)
+        self.split_interval = config.get("split_interval", 10)
         self.is_recording = False
         self.dataset_dir = config.get("dataset_dir", "polar_bear_dataset")
         self.session_files = []
@@ -68,14 +69,14 @@ class Record_System:
         self.session_files.append(base_name)
         print(f"Captured frame {self.frame_count} to {filepath}")
         self.frame_count += 1
-        if self.frame_count > 0 and (self.frame_count % 10) == 0:
+        if self.frame_count > 0 and (self.frame_count % self.split_interval) == 0:
             self.split_val_train()
 
     def split_val_train(self):
         if not self.session_files:
             return
         
-        num_val = 2 #int(len(self.session_files) * self.validation_split)
+        num_val = self.validation_split  #int(len(self.session_files) * self.validation_split)
 
         if num_val == 0 and len(self.session_files) >= 5:
             num_val = 1
