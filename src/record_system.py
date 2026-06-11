@@ -4,10 +4,10 @@ import random
 import shutil
 
 class Record_System:
-    def __init__(self,win, taskMgr,get_Coordinates_func, config=None):
+    def __init__(self,win, taskMgr, config=None):
         self.win = win
         self.taskMgr = taskMgr
-        self.get_Coordinates = get_Coordinates_func
+        self.yolo_coordinates = (0, 0, 0, 0)  # Khởi tạo với giá trị mặc định
         if config is None:
             config = {}
         self.frame_count = 0
@@ -22,21 +22,25 @@ class Record_System:
         # for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
         #     os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
 
-    def scaler(self, number):
-        return (number + 1) / 2
+    # def scaler(self, number):
+    #     return (number + 1) / 2
 
-    def yolo_normalize(self):
-        min_x, max_x, min_y, max_y = self.get_Coordinates()
-        return self.scaler(min_x), self.scaler(max_x), self.scaler(min_y), self.scaler(max_y)
+    # def yolo_normalize(self):
+    #     min_x, max_x, min_y, max_y = self.get_Coordinates()
+    #     min_yolo_y = 1 - self.scaler(max_y)
+    #     max_yolo_y = 1 - self.scaler(min_y)
+    #     return self.scaler(min_x), self.scaler(max_x), min_yolo_y, max_yolo_y
 
-    def get_yolo_coordinates(self):
-        min_x, max_x, min_y, max_y = self.yolo_normalize()
-        yolo_x_center = (min_x + max_x) / 2
-        yolo_y_center = (min_y + max_y) / 2
-        yolo_width = max_x - min_x
-        yolo_height = max_y - min_y
-        return yolo_x_center, yolo_y_center, yolo_width, yolo_height
-    
+    # def get_yolo_coordinates(self):
+    #     min_x, max_x, min_y, max_y = self.yolo_normalize()
+    #     yolo_x_center = (min_x + max_x) / 2
+    #     yolo_y_center = (min_y + max_y) / 2
+    #     yolo_width = max_x - min_x
+    #     yolo_height = max_y - min_y
+    #     return yolo_x_center, yolo_y_center, yolo_width, yolo_height
+    def set_yolo_coordinates(self,yolo_coordinates):
+        self.yolo_coordinates = yolo_coordinates
+
     def get_dataset_name_from_keyboard(self):
         name = input("Enter a name for the dataset (or press Enter to use default): ")
         if name.strip() == "":
@@ -56,9 +60,6 @@ class Record_System:
             self.taskMgr.remove("auto_capture_task")
             # self.split_val_train()
             self.session_files.clear()
-
-
-    
         
     def auto_capture_task(self,task):
         if self.frame_count >= self.limit:  # Giới hạn số lượng ảnh chụp
@@ -81,7 +82,7 @@ class Record_System:
         self.win.saveScreenshot(panda_filename)
         txt_path = f"{self.dataset_dir}/labels/train/{base_name}.txt"
 
-        yolo_x_center, yolo_y_center, yolo_width, yolo_height = self.get_yolo_coordinates()
+        yolo_x_center, yolo_y_center, yolo_width, yolo_height = self.yolo_coordinates
         with open(txt_path, 'w') as f:
             f.write(f"0 {yolo_x_center:.6f} {yolo_y_center:.6f} {yolo_width:.6f} {yolo_height:.6f}\n")
 

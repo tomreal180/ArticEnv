@@ -5,6 +5,13 @@ from panda3d.core import Filename, getModelPath, Point3, LineSegs,Filename
 import json
 import os
 
+from panda3d.core import loadPrcFileData
+
+# Ép kích thước cửa sổ hiển thị là 800x600
+loadPrcFileData("", "win-size 640 640") 
+# Tùy chọn: Tắt chức năng thay đổi kích thước cửa sổ bằng chuột
+loadPrcFileData("", "window-resizable #f")
+
 # Import custom systems
 from src.Polar_bears import PolarBears
 from src.enviroment_system import EnvironmentSystem
@@ -93,16 +100,18 @@ class MyApp(ShowBase):
         # self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
         # self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
-        self.record_system = Record_System(self.win, self.taskMgr, self.getCoordinates, self.config.get("record_system"))
-        self.accept('r', self.record_system.togglerecording)
-        self.accept('f', self.record_system.take_single_photo)
+        self.coordinates = (0,0,0,0)
+        self.taskMgr.add(self.update_yolo_coordinates, "update_yolo_coordinates_task")
+        
+        self.record_system = Record_System(self.win, self.taskMgr, self.config.get("record_system"))
+        self.record_system.set_yolo_coordinates(self.get_yolo_coordinates(self.coordinates))
+        self.accept('r', self.record_system.togglerecording)  # Nhấn 'r' để bắt đầu/dừng ghi dữ liệu, truyền yolo_coordinates vào hàm togglerecording
+        self.accept('f', self.record_system.take_single_photo)  # Nhấn 'f' để chụp một ảnh duy nhất, truyền yolo_coordinates vào hàm take_single_photo
+
 
         self.accept('p', self.printValue)
        
 
-
-    
-        
     def printValue(self):
         """Print current values of camera settings, panda position/rotation/scale, and scene scale for debugging."""
         print("Camera Height:", self.camera_system.cameraHeight)
@@ -135,6 +144,11 @@ class MyApp(ShowBase):
             if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
                 self.yolo_bbox_node.removeNode()
 
+    def update_yolo_coordinates(self,task):
+        self.coordinates = self.calculate_xy()
+        self.record_system.set_yolo_coordinates(self.get_yolo_coordinates(self.coordinates))
+        return task.cont
+    
     def draw_yolo_bounding_box(self, task):
         # Remove the old bounding box
         if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
@@ -143,8 +157,6 @@ class MyApp(ShowBase):
         if not getattr(self, 'is_yolo_bbox_visible', False):
             return task.cont
         
-        self.coordinates = self.calculate_xy()
-
         min_x, max_x, min_y, max_y = self.coordinates
         
         # Uncomment dòng dưới nếu muốn in nhãn liên tục ra Console hoặc ghi file
@@ -165,6 +177,23 @@ class MyApp(ShowBase):
         
         return task.cont
     
+    def scaler(self, number):
+        return (number + 1) / 2
+
+    def yolo_normalize(self, coordinates):
+        min_x, max_x, min_y, max_y = coordinates
+        min_yolo_y = 1 - self.scaler(max_y)
+        max_yolo_y = 1 - self.scaler(min_y)
+        return self.scaler(min_x), self.scaler(max_x), min_yolo_y, max_yolo_y
+
+    def get_yolo_coordinates(self, coordinates):
+        yolo_min_x, yolo_max_x, yolo_min_y, yolo_max_y = self.yolo_normalize(coordinates)
+        yolo_x_center = (yolo_min_x + yolo_max_x) / 2
+        yolo_y_center = (yolo_min_y + yolo_max_y) / 2
+        yolo_width = yolo_max_x - yolo_min_x
+        yolo_height = yolo_max_y - yolo_min_y
+        return (yolo_x_center, yolo_y_center, yolo_width, yolo_height)
+
     def calculate_xy(self):
         bounds = self.polar_bear.getTightBounds()
         if not bounds:
@@ -210,6 +239,7 @@ class MyApp(ShowBase):
         # Limit the bounding box to the screen bounds (-1 to 1 in both x and y)
         min_x, max_x = max(-1, min_x), min(1, max_x)
         min_y, max_y = max(-1, min_y), min(1, max_y)
+
         return (min_x, max_x, min_y, max_y)
     
     def getCoordinates(self):
