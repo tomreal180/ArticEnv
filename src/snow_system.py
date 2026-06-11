@@ -12,7 +12,7 @@ class SnowSystem:
             config = {}
 
         #Configuration of snow system
-        self.num_flakes = None #config.get("num_flakes", 1000)
+        self.num_flakes = config.get("num_flakes", 1000)
         wind = config.get("wind_vector", [15, -5, -15])
         self.wind_vector = Vec3(wind[0], wind[1], wind[2])
         self.spawn_bounds = config.get("spawn_bounds", [-40, 40, -40, 40, -30, 20]) # (minX, maxX, minY, maxY, minZ, maxZ)
@@ -22,7 +22,7 @@ class SnowSystem:
 
         self.snow_root = self.render.attachNewNode("snow_root")
 
-        # self.create_snow()
+        self.create_snow()
         self.taskMgr.add(self.update_snow, "update_snow_task")
 
     def create_snow(self):
