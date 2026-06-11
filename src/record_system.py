@@ -15,27 +15,42 @@ class Record_System:
         self.validation_split = config.get("validation_split", 0.2)
         self.split_interval = config.get("split_interval", 10)
         self.is_recording = False
-        self.dataset_dir = config.get("dataset_dir", "polar_bear_dataset")
+        # self.dataset_dir = config.get("dataset_dir", "polar_bear_dataset")
         self.session_files = []
         
-        for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
-            os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
-        
+        self.dataset_dir = None
+        # for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
+        #     os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
+
+    def scaler(self, number):
+        return (number + 1) / 2
+
+    def yolo_normalize(self):
+        min_x, max_x, min_y, max_y = self.get_Coordinates()
+        return self.scaler(min_x), self.scaler(max_x), self.scaler(min_y), self.scaler(max_y)
 
     def get_yolo_coordinates(self):
-        min_x, max_x, min_y, max_y = self.get_Coordinates()
+        min_x, max_x, min_y, max_y = self.yolo_normalize()
         yolo_x_center = (min_x + max_x) / 2
         yolo_y_center = (min_y + max_y) / 2
         yolo_width = max_x - min_x
         yolo_height = max_y - min_y
         return yolo_x_center, yolo_y_center, yolo_width, yolo_height
     
+    def get_dataset_name_from_keyboard(self):
+        name = input("Enter a name for the dataset (or press Enter to use default): ")
+        if name.strip() == "":
+            name = "polar_bear_dataset"
+        self.dataset_dir = name
+        for sub_dir in ["images/train", "images/val", "labels/train", "labels/val"]:
+            os.makedirs(os.path.join(self.dataset_dir, sub_dir), exist_ok=True)
+    
     def togglerecording(self):
         self.is_recording = not self.is_recording
         if self.is_recording:
             print("Started recording dataset.")
             self.session_files.clear()
-            self.taskMgr.add(self.auto_capture_task, "auto_capture_task", delay=0.5)  # Capture every 0.5 seconds
+            self.taskMgr.add(self.auto_capture_task, "auto_capture_task", delay=1)  # Capture every 1 second
         else:
             print("Stopped recording dataset.")
             self.taskMgr.remove("auto_capture_task")
@@ -49,11 +64,15 @@ class Record_System:
         if self.frame_count >= self.limit:  # Giới hạn số lượng ảnh chụp
             print("Reached maximum frame count. Stopping recording.")
             self.is_recording = False
+            self.frame_count = 0
+            self.dataset_dir = None
             return task.done
         self.take_single_photo()
         return task.again  # Schedule the task to run again after the specified interval
 
     def take_single_photo(self):
+        if self.dataset_dir is None:
+            self.get_dataset_name_from_keyboard()
         base_name = f"frame_{self.frame_count:04d}"
         filepath = f"{self.dataset_dir}/images/train/{base_name}.png"
 
