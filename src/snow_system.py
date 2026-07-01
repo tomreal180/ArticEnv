@@ -6,7 +6,7 @@ class SnowSystem:
         self.loader = loader
         self.render = render
         self.taskMgr = taskMgr
-        self.globalClock = globalClock
+        self.global_clock = globalClock
         
         if config is None:
             config = {}
@@ -22,10 +22,10 @@ class SnowSystem:
 
         self.snow_root = self.render.attachNewNode("snow_root")
 
-        self.create_snow()
-        self.taskMgr.add(self.update_snow, "update_snow_task")
+        self.createSnow()
+        self.taskMgr.add(self.updateSnow, "update_snow_task")
 
-    def create_snow(self):
+    def createSnow(self):
         """Create snowflakes as card billboards with the snowflake texture."""
         flake_cm = CardMaker('flake')
         flake_cm.setFrame(-0.1, 0.1, -0.1, 0.1)
@@ -45,9 +45,9 @@ class SnowSystem:
 
             self.snow_particles.append(flake)
 
-    def update_snow(self, task):
+    def updateSnow(self, task):
         """Update the position of each snowflake based on wind and respawn them if they go out of bounds."""
-        dt = self.globalClock.getDt()
+        dt = self.global_clock.getDt()
         movement = self.wind_vector * dt
 
         for flake in self.snow_particles:
@@ -70,7 +70,7 @@ class SnowSystem:
 
         # Cập nhật số lượng và tạo lại bông tuyết
         self.num_flakes = max(0, self.num_flakes + delta)
-        self.create_snow()
+        self.createSnow()
     
     def setnumFlakes(self, num):
         """Set the number of snowflakes to display."""
@@ -78,7 +78,7 @@ class SnowSystem:
 
         # Cập nhật số lượng và tạo lại bông tuyết
         self.num_flakes = max(0, num)
-        self.create_snow()
+        self.createSnow()
 
     def updateSnowPosition(self, target_pos):
         """Update the spawn bounds of snowflakes based on the target position."""
@@ -86,7 +86,7 @@ class SnowSystem:
         
         # Xóa tuyết cũ để tránh bị nhân đôi số lượng hạt tuyết và tràn RAM
         self.removeSnow()
-        self.create_snow()
+        self.createSnow()
 
     def removeSnow(self):
         """Remove all existing snowflakes from the scene and clear the list."""

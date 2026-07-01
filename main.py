@@ -83,10 +83,8 @@ class MyApp(ShowBase):
         # Nút E để bật/tắt lưới
         self.accept('e', self.polar_bear.toggle_outline)
 
-        # Nút W để bật/tắt khung YOLO 2D
-        self.accept('w', self.toggle_yolo_bbox)
-        self.is_yolo_bbox_visible = True
-        self.taskMgr.add(self.draw_yolo_bounding_box, "draw_yolo_bbox_task")
+        
+        
 
         # # Cài đặt phím mũi tên để di chuyển nhân vật
         # self.accept('arrow_up', self.polar_bear.moveForward, [0.5])
@@ -100,13 +98,18 @@ class MyApp(ShowBase):
         # self.accept('arrow_left-repeat', self.polar_bear.turn, [10.0])
         # self.accept('arrow_right-repeat', self.polar_bear.turn, [-10.0])
 
-        self.coordinates = (0,0,0,0)
-        self.taskMgr.add(self.update_yolo_coordinates, "update_yolo_coordinates_task")
+        
         
         self.record_system = Record_System(self.win, self.taskMgr, self.config.get("record_system"))
-        self.record_system.set_yolo_coordinates(self.get_yolo_coordinates(self.coordinates))
+        self.coordinates = (0,0,0,0)
+        self.is_yolo_bbox_visible = False
+        self.taskMgr.add(self.UpdateYoloCoordinates, "UpdateYoloCoordinates_task")
+        self.record_system.set_yolo_coordinates(self.getYoloCoordinates(self.coordinates))
         self.accept('r', self.record_system.togglerecording)  # Nhấn 'r' để bắt đầu/dừng ghi dữ liệu, truyền yolo_coordinates vào hàm togglerecording
         self.accept('f', self.record_system.take_single_photo)  # Nhấn 'f' để chụp một ảnh duy nhất, truyền yolo_coordinates vào hàm take_single_photo
+        # Nút W để bật/tắt khung YOLO 2D
+        self.accept('w', self.toggleYoloBbox)
+        self.taskMgr.add(self.drawYoloBoundingBox, "draw_yolo_bbox_task")
 
 
         self.accept('p', self.printValue)
@@ -131,10 +134,10 @@ class MyApp(ShowBase):
         else:
             self.environment_system.setupBlizzardEffect()
             self.snow_system.setnumFlakes(self.config.get("snow_system", {}).get("num_flakes", 1000))
-        self.setBackgroundColor(self.environment_system.fog_color)
+        # self.setBackgroundColor(self.environment_system.fog_color)
         self.blizzard_effect = not self.blizzard_effect
 
-    def toggle_yolo_bbox(self):
+    def toggleYoloBbox(self):
         """Toggle the visibility of the YOLO bounding box overlay on the screen."""
         self.is_yolo_bbox_visible = not getattr(self, 'is_yolo_bbox_visible', False)
         if self.is_yolo_bbox_visible:
@@ -144,12 +147,12 @@ class MyApp(ShowBase):
             if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
                 self.yolo_bbox_node.removeNode()
 
-    def update_yolo_coordinates(self,task):
-        self.coordinates = self.calculate_xy()
-        self.record_system.set_yolo_coordinates(self.get_yolo_coordinates(self.coordinates))
+    def UpdateYoloCoordinates(self,task):
+        self.coordinates = self.calculateXY()
+        self.record_system.set_yolo_coordinates(self.getYoloCoordinates(self.coordinates))
         return task.cont
     
-    def draw_yolo_bounding_box(self, task):
+    def drawYoloBoundingBox(self, task):
         # Remove the old bounding box
         if hasattr(self, 'yolo_bbox_node') and not self.yolo_bbox_node.isEmpty():
             self.yolo_bbox_node.removeNode()
@@ -180,21 +183,21 @@ class MyApp(ShowBase):
     def scaler(self, number):
         return (number + 1) / 2
 
-    def yolo_normalize(self, coordinates):
+    def yoloNormalize(self, coordinates):
         min_x, max_x, min_y, max_y = coordinates
         min_yolo_y = 1 - self.scaler(max_y)
         max_yolo_y = 1 - self.scaler(min_y)
         return self.scaler(min_x), self.scaler(max_x), min_yolo_y, max_yolo_y
 
-    def get_yolo_coordinates(self, coordinates):
-        yolo_min_x, yolo_max_x, yolo_min_y, yolo_max_y = self.yolo_normalize(coordinates)
+    def getYoloCoordinates(self, coordinates):
+        yolo_min_x, yolo_max_x, yolo_min_y, yolo_max_y = self.yoloNormalize(coordinates)
         yolo_x_center = (yolo_min_x + yolo_max_x) / 2
         yolo_y_center = (yolo_min_y + yolo_max_y) / 2
         yolo_width = yolo_max_x - yolo_min_x
         yolo_height = yolo_max_y - yolo_min_y
         return (yolo_x_center, yolo_y_center, yolo_width, yolo_height)
 
-    def calculate_xy(self):
+    def calculateXY(self):
         bounds = self.polar_bear.getTightBounds()
         if not bounds:
             raise Exception("Failed to get tight bounds for polar bear.")
