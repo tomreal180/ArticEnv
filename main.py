@@ -7,9 +7,9 @@ import os
 
 from panda3d.core import loadPrcFileData
 
-# Ép kích thước cửa sổ hiển thị là 800x600
+# Set window size to 640x640 pixels
 loadPrcFileData("", "win-size 640 640") 
-# Tùy chọn: Tắt chức năng thay đổi kích thước cửa sổ bằng chuột
+# Turn off window resizing
 loadPrcFileData("", "window-resizable #f")
 
 # Import custom systems
@@ -34,7 +34,6 @@ class MyApp(ShowBase):
 
         # Ensure relative texture URIs from scene.gltf (like textures/...) are resolvable.
         getModelPath().appendDirectory(Filename.from_os_specific("assets/models/snow_mountain"))
-        # Thêm thư mục assets vào đường dẫn để tìm model và texture
         # getModelPath().appendDirectory(Filename.from_os_specific("assets"))
 
         #Init environment system

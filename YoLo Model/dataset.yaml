@@ -1,0 +1,14 @@
+# Đường dẫn tuyệt đối hoặc tương đối tới thư mục dataset
+path: dataset
+
+
+# Đường dẫn tới thư mục ảnh train và val (tính từ 'path' ở trên)
+train: images/train  
+val: images/val      
+
+# # Số lượng classes (lớp đối tượng) - Ở đây chỉ có 1 là con gấu
+nc: 1
+
+# Tên của các classes (theo đúng thứ tự ID trong file .txt)
+names: 
+  0: bear
