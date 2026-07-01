@@ -28,6 +28,10 @@ ArticEnv/
 │   │       └── scene.gltf
 │   └── textures/
 │       └── snowflake.png
+├── YOLO Model/
+│   ├── dataset.yaml
+│   ├── train_model.py
+│   └── test_model.py
 ├── src/
 │   ├── __init__.py
 │   ├── camera_system.py
@@ -56,7 +60,7 @@ ArticEnv/
 ## Setup and Installation
 
 1.  **Prerequisites**:
-    - Python 3.x
+    - Python 3.14.10
 
 2.  **Clone the repository** (or ensure all files are in the same directory structure as above).
 
